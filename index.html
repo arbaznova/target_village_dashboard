@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Target Village Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f3f0;
+  --surface: #fcfcfb;
+  --surface-2: #f0efec;
+  --border: #e2e0db;
+  --border-strong: #cfccc5;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #7a7974;
+  --accent: #2a78d6;
+  --bjp: #eb6834;        /* BJP — categorical slot 2 */
+  --rival: #2a78d6;      /* strongest non-BJP party — slot 1 */
+  --other: #bdbbb5;
+  --div-bjp-2: #c2521f;
+  --div-bjp-1: #f3a37f;
+  --div-mid: #c9c7c1;
+  --div-riv-1: #86b6ef;
+  --div-riv-2: #1c5cab;
+  --st-red: #c93838;
+  --st-amber: #d9750a;
+  --st-yellow: #b58f00;
+  --st-green: #2f8a3c;
+  --hi: #c93838;
+  --med: #d9750a;
+  --low: #7a7974;
+  --shadow: 0 1px 2px rgba(0,0,0,.05), 0 4px 16px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --border: #2f2f2c; --border-strong: #42423e;
+    --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e86; --accent: #3987e5;
+    --bjp: #d95926; --rival: #3987e5; --other: #5b5a55;
+    --div-bjp-2: #e0743f; --div-bjp-1: #9a4a26; --div-mid: #55544f; --div-riv-1: #2b5c99; --div-riv-2: #6da7ec;
+    --st-red: #e66767; --st-amber: #f0952e; --st-yellow: #d9b425; --st-green: #4fb05c;
+    --hi: #e66767; --med: #f0952e; --low: #8f8e86;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211; --surface: #1a1a19; --surface-2: #232321; --border: #2f2f2c; --border-strong: #42423e;
+  --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e86; --accent: #3987e5;
+  --bjp: #d95926; --rival: #3987e5; --other: #5b5a55;
+  --div-bjp-2: #e0743f; --div-bjp-1: #9a4a26; --div-mid: #55544f; --div-riv-1: #2b5c99; --div-riv-2: #6da7ec;
+  --st-red: #e66767; --st-amber: #f0952e; --st-yellow: #d9b425; --st-green: #4fb05c;
+  --hi: #e66767; --med: #f0952e; --low: #8f8e86;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 4px 16px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font: 14px/1.45 "Noto Sans", "Noto Sans Devanagari", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 16px; }
+
+/* header */
+header.top { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; }
+.top-row { display: flex; align-items: center; gap: 12px; padding: 12px 0 8px; }
+.top-row h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+.top-row .sub { color: var(--text-3); font-size: 12.5px; }
+.top-row .spacer { flex: 1; }
+.icon-btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 10px; cursor: pointer; color: var(--text-2); }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+nav.tabs { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; }
+nav.tabs button {
+  border: 0; background: none; padding: 9px 14px; cursor: pointer; color: var(--text-2);
+  border-bottom: 2px solid transparent; white-space: nowrap; font-weight: 500;
+}
+nav.tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--accent); }
+nav.tabs .count { color: var(--text-3); font-weight: 400; margin-left: 4px; font-size: 12px; }
+
+/* filters */
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 14px 0 4px; }
+.filters select, .filters input[type=search] {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; min-height: 36px;
+}
+.filters input[type=search] { min-width: 220px; flex: 1 1 220px; max-width: 360px; }
+.filters .lbl { font-size: 12px; color: var(--text-3); }
+.filters .result { margin-left: auto; color: var(--text-3); font-size: 12.5px; }
+.btn { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; min-height: 36px; }
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn.small { padding: 4px 9px; min-height: 28px; font-size: 12.5px; }
+
+main { padding: 8px 0 48px; }
+section.view { display: none; }
+section.view.active { display: block; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.card h2 { font-size: 15px; margin: 0 0 2px; font-weight: 600; }
+.card .hint { color: var(--text-3); font-size: 12.5px; margin: 0 0 12px; }
+.grid { display: grid; gap: 12px; }
+.g-kpi { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 12px; }
+.g-2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+@media (max-width: 900px) { .g-2 { grid-template-columns: minmax(0, 1fr); } }
+
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.kpi .k { color: var(--text-2); font-size: 12.5px; }
+.kpi .v { font-size: 26px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.kpi .s { color: var(--text-3); font-size: 12px; margin-top: 2px; }
+
+/* category ramp chips */
+.cat { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.5px; color: var(--text); }
+.cat::before { content: ""; width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+.c-SB { --c: var(--div-bjp-2); } .c-LB { --c: var(--div-bjp-1); } .c-BG { --c: var(--div-mid); }
+.c-LR { --c: var(--div-riv-1); } .c-SR { --c: var(--div-riv-2); } .c-NA { --c: transparent; }
+.c-NA::before { border: 1.5px dashed var(--text-3); }
+
+.prio { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.prio i { width: 8px; height: 8px; border-radius: 50%; background: var(--pc); display: inline-block; }
+.p-High { --pc: var(--hi); } .p-Medium { --pc: var(--med); } .p-Low { --pc: var(--low); } .p-Verify { --pc: transparent; }
+.p-Verify i { border: 1.5px dashed var(--text-3); }
+
+.band { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--bc); color: var(--text); white-space: nowrap; }
+.band::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--bc); margin-right: 5px; vertical-align: 1px; }
+.b-Red { --bc: var(--st-red); } .b-Amber { --bc: var(--st-amber); } .b-Yellow { --bc: var(--st-yellow); } .b-Green { --bc: var(--st-green); }
+
+/* tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--text-2); background: var(--surface-2); position: sticky; top: 0; white-space: nowrap; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text); }
+th .arr { color: var(--text-3); font-size: 10px; margin-left: 3px; }
+td.num, th.num { text-align: right; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: 0; }
+.vname { font-weight: 600; }
+.vsub { color: var(--text-3); font-size: 12px; }
+.muted { color: var(--text-3); }
+.small { font-size: 12px; }
+
+/* margin bar (diverging around 0) */
+td.nw { white-space: nowrap; }
+.mbar { position: relative; width: 100px; height: 14px; display: inline-block; vertical-align: middle; }
+.mbar::after { content: ""; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 1px; background: var(--border-strong); }
+.mbar span { position: absolute; top: 2px; height: 10px; border-radius: 3px; }
+.mval { display: inline-block; min-width: 58px; text-align: right; margin-left: 6px; font-weight: 600; }
+
+/* stacked share bar */
+.sbar { display: flex; height: 10px; width: 100%; min-width: 90px; gap: 2px; }
+.sbar span { height: 100%; }
+.sbar span:first-child { border-radius: 3px 0 0 3px; }
+.sbar span:last-child { border-radius: 0 3px 3px 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--text-2); margin: 0 0 10px; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* charts */
+.chart { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { fill: var(--text-3); font-size: 11px; }
+.chart .grid line { stroke: var(--border); }
+.chart .axis line { stroke: var(--border-strong); }
+.chart .lab { fill: var(--text-2); font-size: 11.5px; }
+.chart .dot { stroke: var(--surface); stroke-width: 2; cursor: pointer; }
+.chart .dot:hover, .chart .dot.hl { stroke: var(--text); }
+#tip {
+  position: fixed; pointer-events: none; z-index: 100; background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; box-shadow: var(--shadow);
+  max-width: 280px; display: none;
+}
+#tip b { font-weight: 600; }
+#tip .r { display: flex; justify-content: space-between; gap: 14px; }
+#tip .r span:last-child { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+/* horizontal bar list */
+.hbars { display: grid; grid-template-columns: max-content 1fr max-content; gap: 6px 10px; align-items: center; font-size: 12.5px; }
+.hbars .track { height: 12px; }
+.hbars .fill { height: 12px; border-radius: 0 4px 4px 0; background: var(--c, var(--accent)); min-width: 2px; }
+.hbars .n { font-variant-numeric: tabular-nums; color: var(--text-2); text-align: right; }
+
+/* drawer */
+.scrim { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 50; display: none; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(920px, 100vw); background: var(--bg); z-index: 60;
+  transform: translateX(100%); transition: transform .2s ease; overflow-y: auto; box-shadow: var(--shadow);
+}
+.drawer.open { transform: none; }
+.scrim.open { display: block; }
+.d-head { position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start; z-index: 2; }
+.d-head h2 { margin: 0; font-size: 20px; }
+.d-body { padding: 16px 18px 40px; display: grid; gap: 12px; }
+.action { border-left: 4px solid var(--pc, var(--accent)); }
+.action .t { font-weight: 600; font-size: 15px; }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kv div .k { color: var(--text-3); font-size: 12px; }
+.kv div .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.kv div .c { font-size: 12px; color: var(--text-2); }
+.tracker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.tracker label { font-size: 12px; color: var(--text-3); display: block; margin-bottom: 3px; }
+.tracker select, .tracker input, .tracker textarea { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; }
+.tracker textarea { min-height: 70px; resize: vertical; }
+.tracker .full { grid-column: 1 / -1; }
+@media (max-width: 560px) { .tracker { grid-template-columns: 1fr; } .top-row .sub { display: none; } }
+
+.fs { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); white-space: nowrap; }
+.fs-Visited, .fs-Done { border-color: var(--st-green); }
+.fs-Contacted, .fs-Planned { border-color: var(--st-amber); }
+
+.ac-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.ac-card h3 { margin: 0; font-size: 15px; }
+.ac-card .meta { color: var(--text-3); font-size: 12px; margin-bottom: 10px; }
+.ac-card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+.ac-card .row span:last-child { font-weight: 600; font-variant-numeric: tabular-nums; }
+.cmp { margin: 8px 0 6px; }
+.cmp .ln { display: grid; grid-template-columns: 112px 1fr 46px; gap: 8px; align-items: center; font-size: 12px; color: var(--text-2); margin: 3px 0; }
+.cmp .tr { height: 8px; background: var(--surface-2); border-radius: 4px; position: relative; }
+.cmp .tr span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+.cmp .ln b { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+details.note { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); padding: 10px 14px; margin-bottom: 8px; }
+details.note summary { cursor: pointer; font-weight: 600; }
+details.note ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+.def dt { font-weight: 600; margin-top: 8px; }
+.def dd { margin: 2px 0 0; color: var(--text-2); }
+.empty { padding: 28px; text-align: center; color: var(--text-3); }
+.progress { height: 8px; background: var(--surface-2); border-radius: 4px; display: flex; overflow: hidden; gap: 2px; }
+.progress span { height: 100%; }
+.hosted .local-only, .hosted .dl-btn { display: none !important; }
+.hosted.can-dl .dl-btn { display: inline-flex !important; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+@media print {
+  header.top, .filters, .scrim, .no-print, nav.tabs { display: none !important; }
+  body { background: #fff; }
+  .drawer.open { position: static; transform: none; width: auto; box-shadow: none; }
+  .drawer.open ~ main, body.printing main { display: none; }
+  .card { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="top-row">
+      <div>
+        <h1>Target Village Dashboard</h1>
+        <div class="sub" id="subtitle"></div>
+      </div>
+      <div class="spacer"></div>
+      <button class="icon-btn local-only" id="themeBtn" title="Toggle light / dark">◐ Theme</button>
+    </div>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="overview" aria-selected="true">Overview</button>
+      <button role="tab" data-tab="villages">Villages <span class="count" id="cnt-v"></span></button>
+      <button role="tab" data-tab="acs">Constituencies</button>
+      <button role="tab" data-tab="field">Field tracker</button>
+      <button role="tab" data-tab="gaps">Unmapped &amp; notes <span class="count" id="cnt-g"></span></button>
+      <button role="tab" data-tab="method">How to read</button>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="filters" id="filters">
+    <select id="fAc" aria-label="Constituency"></select>
+    <select id="fCat" aria-label="Category">
+      <option value="">All categories</option>
+      <option value="SB">BJP stronghold</option>
+      <option value="LB">Lean BJP</option>
+      <option value="BG">Battleground</option>
+      <option value="LR">Lean rival</option>
+      <option value="SR">Rival stronghold</option>
+      <option value="NA">Not mapped to booths</option>
+    </select>
+    <select id="fPrio" aria-label="Priority">
+      <option value="">All priorities</option>
+      <option>High</option><option>Medium</option><option>Low</option><option>Verify</option>
+    </select>
+    <select id="fField" aria-label="Field status"></select>
+    <input type="search" id="fQ" placeholder="Search village, polling station, booth no…" aria-label="Search">
+    <button class="btn" id="fReset">Reset</button>
+    <span class="result" id="fResult"></span>
+  </div>
+</div>
+
+<main class="wrap">
+  <!-- OVERVIEW -->
+  <section class="view active" id="v-overview">
+    <div class="grid g-kpi" id="kpis"></div>
+    <div class="grid g-2">
+      <div class="card">
+        <h2>Where each village stands</h2>
+        <p class="hint">BJP lead/deficit over the strongest rival (x) against turnout (y). Bubble size = electors. Villages near the centre line are the closest contests; low-turnout bubbles have the most unused votes. Click a bubble to open it.</p>
+        <div class="legend" id="scLegend"></div>
+        <div id="scatter"></div>
+      </div>
+      <div class="card">
+        <h2>Villages by category</h2>
+        <p class="hint">Based on 2022 booth results in each village’s mapped booths.</p>
+        <div id="catBars"></div>
+        <h2 style="margin-top:18px">Priority mix</h2>
+        <p class="hint">See “How to read” for the rules behind each priority.</p>
+        <div id="prioBars"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>Top opportunities</h2>
+      <p class="hint">High-priority villages, closest contests first. Click a row for booth-level detail.</p>
+      <div id="topList"></div>
+    </div>
+  </section>
+
+  <!-- VILLAGES -->
+  <section class="view" id="v-villages">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:4px 0 10px">
+      <div class="legend" style="margin:0">
+        <span><span class="sw" style="background:var(--bjp)"></span>BJP</span>
+        <span><span class="sw" style="background:var(--rival)"></span>Strongest rival</span>
+        <span><span class="sw" style="background:var(--other)"></span>All others</span>
+      </div>
+      <span style="flex:1"></span>
+      <button class="btn small dl-btn" id="exportV">Export CSV</button>
+    </div>
+    <div class="table-wrap"><table id="vTable"></table></div>
+  </section>
+
+  <!-- CONSTITUENCIES -->
+  <section class="view" id="v-acs">
+    <p class="hint muted" style="margin:4px 0 12px">Target villages compared with the whole constituency. Click a card to filter the village list.</p>
+    <div class="ac-cards" id="acCards"></div>
+  </section>
+
+  <!-- FIELD -->
+  <section class="view" id="v-field">
+    <div class="card" style="margin-bottom:12px">
+      <h2>Field progress</h2>
+      <p class="hint" id="trMode">Status, owner and notes are saved in this browser only. Use Export / Import to share the tracker with the team or move it to another device.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" class="no-print">
+        <button class="btn small dl-btn" id="trExport">Export tracker (JSON)</button>
+        <label class="btn small" style="display:inline-flex;align-items:center">Import tracker<input type="file" id="trImport" accept=".json" hidden></label>
+        <button class="btn small dl-btn" id="trCsv">Export field plan (CSV)</button>
+        <span class="small muted" id="trMsg" role="status"></span>
+      </div>
+      <div id="fieldSummary"></div>
+    </div>
+    <div class="table-wrap"><table id="fTable"></table></div>
+  </section>
+
+  <!-- GAPS -->
+  <section class="view" id="v-gaps">
+    <div class="card" style="margin-bottom:12px">
+      <h2>Target villages not mapped to any booth</h2>
+      <p class="hint">These were in the target lists but no reliable polling-station match was found in the workbooks. Hints are for manual verification only — they were not substituted.</p>
+      <div id="gapList"></div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <h2>Villages that share booths</h2>
+      <p class="hint">These target villages are mapped to the same polling booths, so their numbers are identical. Totals in this dashboard count each booth once.</p>
+      <div id="shareList"></div>
+    </div>
+    <h2 style="font-size:15px;margin:18px 0 8px">Workbook notes &amp; validation (per constituency)</h2>
+    <div id="acNotes"></div>
+  </section>
+
+  <!-- METHOD -->
+  <section class="view" id="v-method">
+    <div class="grid g-2">
+      <div class="card">
+        <h2>Definitions</h2>
+        <dl class="def">
+          <dt>BJP share</dt><dd>BJP votes ÷ total votes polled (Voters Turnout → Total) in the village’s booths — the same basis as the workbooks’ Red / Amber / Yellow / Green bands.</dd>
+          <dt>Strongest rival</dt><dd>The non-BJP candidate (excluding NOTA) with the most votes in that village. Usually RLD or SP (the 2022 SP–RLD alliance), sometimes BSP.</dd>
+          <dt>Margin</dt><dd>BJP votes − strongest rival’s votes. Positive = BJP led. “Margin pts” is the same as a share of votes polled.</dd>
+          <dt>Turnout</dt><dd>Votes polled ÷ registered electors (Form-20). “Did not vote” = electors − votes polled: the pool for turnout drives.</dd>
+          <dt>To overtake</dt><dd>Where BJP trailed: the extra BJP voters needed to pass the rival (deficit + 1), or the number of rival voters who would need to switch (about half of that, because each switch moves the gap by two).</dd>
+          <dt>Booth band (from the workbooks)</dt><dd><span class="band b-Red">Red</span> &lt;25% · <span class="band b-Amber">Amber</span> 25–50% · <span class="band b-Yellow">Yellow</span> 50–75% · <span class="band b-Green">Green</span> ≥75% BJP share.</dd>
+        </dl>
+      </div>
+      <div class="card">
+        <h2>Category &amp; priority rules</h2>
+        <dl class="def">
+          <dt>Category (by margin pts)</dt>
+          <dd><span class="cat c-SB">BJP stronghold</span> ≥ +20 · <span class="cat c-LB">Lean BJP</span> +5 to +20 · <span class="cat c-BG">Battleground</span> −5 to +5 · <span class="cat c-LR">Lean rival</span> −20 to −5 · <span class="cat c-SR">Rival stronghold</span> ≤ −20</dd>
+          <dt><span class="prio p-High"><i></i>High</span></dt><dd>Margin within ±10 pts, or BJP trails by up to 25 pts and the deficit is smaller than the number of people who did not vote.</dd>
+          <dt><span class="prio p-Medium"><i></i>Medium</span></dt><dd>BJP leads by 10–20 pts (lead to protect), or a safer village whose turnout is 3+ pts below its constituency’s average, or a trailing village outside the High rule but within 35 pts.</dd>
+          <dt><span class="prio p-Low"><i></i>Low</span></dt><dd>Safe BJP villages with normal turnout (maintain), or deficits too large to close in one cycle (limit losses).</dd>
+          <dt><span class="prio p-Verify"><i></i>Verify</span></dt><dd>Not mapped to any booth yet — confirm the polling station on the ground first.</dd>
+        </dl>
+        <p class="muted small">These rules are a starting point for planning, not a forecast. Local knowledge (caste/community arithmetic, candidate, local issues) should override them.</p>
+      </div>
+      <div class="card">
+        <h2>Data sources</h2>
+        <dl class="def">
+          <dt>Target villages &amp; matching</dt><dd>The 12 constituency workbooks in <code>raw_data/</code> (target-village sheets, match status and notes).</dd>
+          <dt>Booth results</dt><dd>2022 Form-20 files in <code>form20 up/2022/</code> — every candidate’s votes and electors per booth. BJP votes were cross-checked against every workbook: all booths match exactly.</dd>
+          <dt>Map links</dt><dd>Approximate village-level coordinates from <code>data-analysis/cleaned_data/booth_level/</code> where available; otherwise a map search by name. Verify on the ground.</dd>
+          <dt>Rebuild</dt><dd>Run <code>build_data.py</code> in this folder after changing the workbooks; it regenerates <code>data.js</code>.</dd>
+        </dl>
+        <p class="muted small" id="genInfo"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div id="tip" role="tooltip"></div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+'use strict';
+const D = window.DASH_DATA;
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => n == null || isNaN(n) ? '—' : Math.round(n).toLocaleString('en-IN');
+const pct = (n, d = 1) => n == null || isNaN(n) ? '—' : (n * 100).toFixed(d) + '%';
+const pts = n => n == null || isNaN(n) ? '—' : (n > 0 ? '+' : n < 0 ? '−' : '') + Math.abs(n * 100).toFixed(1);
+const sgn = n => n == null ? '—' : (n > 0 ? '+' : n < 0 ? '−' : '') + fmt(Math.abs(n));
+const CAT = { SB: 'BJP stronghold', LB: 'Lean BJP', BG: 'Battleground', LR: 'Lean rival', SR: 'Rival stronghold', NA: 'Not mapped' };
+const CAT_ORDER = ['SB', 'LB', 'BG', 'LR', 'SR', 'NA'];
+const PRIO_ORDER = { High: 0, Medium: 1, Low: 2, Verify: 3 };
+const FIELD = ['Not started', 'Contacted', 'Planned', 'Visited', 'Done'];
+
+/* ---------- storage (per-browser field tracker) ---------- */
+// Opened from disk: browser storage + plain downloads. Hosted on claude.ai: a shared database so
+// the whole team sees one tracker, and the viewer's save dialog for exports.
+const LOCAL = location.protocol === 'file:';
+const cap = n => (!LOCAL && window.claude && typeof window.claude.use === 'function') ? window.claude.use(n).catch(() => null) : Promise.resolve(null);
+if (!LOCAL) document.documentElement.classList.add('hosted');
+const STORE_KEY = 'tvd-field-v1';
+let tracker = {}, sharedDb = null, userCap = null, myId = null;
+try { tracker = JSON.parse(localStorage.getItem(STORE_KEY) || '{}') || {}; } catch (e) { tracker = {}; }
+function saveTracker() { try { localStorage.setItem(STORE_KEY, JSON.stringify(tracker)); } catch (e) {} }
+const writeQueue = {};
+function persist(id) {
+  if (!sharedDb) { saveTracker(); return; }
+  const rec = { ...tracker[id] };
+  // one write at a time per document
+  writeQueue[id] = (writeQueue[id] || Promise.resolve()).then(() => sharedDb.collection('tracker').doc(id).set(rec))
+    .catch(err => { const m = document.getElementById('trMsg'); if (m) m.textContent = 'Could not save: ' + (err && err.message || 'you may only have view access.'); });
+}
+const fieldOf = v => (tracker[v.id] && tracker[v.id].status) || 'Not started';
+
+/* ---------- model ---------- */
+function agg(booths) {
+  const a = { electors: 0, turnout: 0, votes: {}, hasElectors: true };
+  for (const b of booths) {
+    if (b.electors == null) a.hasElectors = false;
+    a.electors += b.electors || 0; a.turnout += b.turnout || 0;
+    for (const [p, v] of Object.entries(b.votes)) a.votes[p] = (a.votes[p] || 0) + v;
+  }
+  return derive(a);
+}
+function derive(a) {
+  const bjp = a.votes.BJP || 0;
+  let rival = null, rv = -1;
+  for (const [p, v] of Object.entries(a.votes)) if (p !== 'BJP' && p !== 'NOTA' && v > rv) { rival = p; rv = v; }
+  const t = a.turnout || 0;
+  a.bjp = bjp; a.rival = rival; a.rivalVotes = Math.max(rv, 0);
+  a.others = Math.max(t - bjp - a.rivalVotes, 0);
+  a.share = t ? bjp / t : null; a.rivalShare = t ? a.rivalVotes / t : null;
+  a.margin = bjp - a.rivalVotes; a.marginPts = t ? a.margin / t : null;
+  a.turnoutPct = a.hasElectors && a.electors ? t / a.electors : null;
+  a.nonVoters = a.hasElectors && a.electors ? a.electors - t : null;
+  return a;
+}
+const band = s => s == null ? null : s < .25 ? 'Red' : s < .5 ? 'Amber' : s < .75 ? 'Yellow' : 'Green';
+const catOf = m => m == null ? 'NA' : m >= .20 ? 'SB' : m >= .05 ? 'LB' : m > -.05 ? 'BG' : m > -.20 ? 'LR' : 'SR';
+
+function assess(v) {
+  const s = v.stats, ac = v.ac.stats;
+  if (!v.mapped) return { prio: 'Verify', title: 'Confirm booths on the ground', why: 'This target village has no reliable polling-station match in the data. Identify which booth(s) its voters use before planning.' };
+  const m = s.marginPts, def = -s.margin, tgap = s.turnoutPct != null && ac.turnoutPct != null ? s.turnoutPct - ac.turnoutPct : null;
+  const lowT = tgap != null && tgap <= -.03;
+  const tNote = tgap == null ? '' : ` Turnout was ${pct(s.turnoutPct)} vs ${pct(ac.turnoutPct)} constituency average.`;
+  if (Math.abs(m) <= .10) return { prio: 'High', title: m >= 0 ? 'Close contest — defend and expand' : 'Close contest — winnable', why: `Margin of ${sgn(s.margin)} votes (${pts(m)} pts). Small shifts in persuasion or turnout decide this village.${tNote}` };
+  if (m < 0 && m >= -.25 && s.nonVoters != null && s.nonVoters > def) return { prio: 'High', title: 'Gap can be closed through turnout', why: `BJP trailed ${s.rival} by ${fmt(def)} votes, but ${fmt(s.nonVoters)} registered voters did not vote. Mobilising supporters among them plus persuasion can overturn this.${tNote}` };
+  if (m > .10 && m < .20) return { prio: 'Medium', title: 'Lead to protect', why: `BJP led by ${fmt(s.margin)} votes (${pts(m)} pts). Keep supporters engaged and make sure they turn out.${tNote}` };
+  if (m >= .20) return lowT
+    ? { prio: 'Medium', title: 'Safe base — bank more votes', why: `Strong BJP lead (${pts(m)} pts) but turnout was ${pct(-tgap)} below the constituency average. A turnout drive here yields BJP votes efficiently.` }
+    : { prio: 'Low', title: 'Safe base — maintain', why: `Strong BJP lead (${pts(m)} pts) with normal turnout. Light-touch maintenance; use local workers to help nearby close villages.` };
+  if (m >= -.35) return { prio: 'Medium', title: 'Uphill — targeted persuasion', why: `BJP trailed ${s.rival} by ${fmt(def)} votes (${pts(m)} pts). Focus on specific booths/communities where BJP is closest rather than the whole village.${tNote}` };
+  return { prio: 'Low', title: 'Rival stronghold — limit losses', why: `BJP trailed ${s.rival} by ${fmt(def)} votes (${pts(m)} pts). Hard to flip in one cycle; aim to raise BJP share in the best booths.${tNote}` };
+}
+
+const ACS = D.acs;
+const V = [];
+for (const ac of ACS) {
+  const all = Object.values(ac.booths);
+  const t = ac.totals;
+  ac.stats = derive({ electors: t.electors, turnout: t.turnout, votes: { ...t.votes }, hasElectors: t.electors > 0 });
+  for (const b of all) { b.stats = agg([b]); b.band = band(b.stats.share); }
+  const used = new Set();
+  ac.targets.forEach((tg, i) => {
+    const booths = tg.booths.map(n => ac.booths[n]).filter(Boolean);
+    booths.forEach(b => used.add(b.no));
+    const en = {};
+    booths.forEach(b => { if (b.village_en) en[b.village_en] = (en[b.village_en] || 0) + 1; });
+    const nameEn = Object.entries(en).sort((a, b) => b[1] - a[1]).map(e => e[0])[0] || '';
+    const v = { id: `${ac.no}-${i}`, ac, name: tg.name, nameEn, status: tg.status, note: tg.note, annotation: tg.annotation,
+      booths, mapped: booths.length > 0 };
+    v.stats = v.mapped ? agg(booths) : derive({ electors: 0, turnout: 0, votes: {}, hasElectors: false });
+    v.cat = v.mapped ? catOf(v.stats.marginPts) : 'NA';
+    v.assess = assess(v);
+    v.search = [tg.name, nameEn, ac.name, ac.district, tg.note, ...booths.map(b => b.station + ' ' + b.no)].join(' ').toLowerCase();
+    V.push(v);
+  });
+  ac.targetStats = agg([...used].map(n => ac.booths[n]));
+  ac.vills = V.filter(v => v.ac === ac);
+}
+// shared-booth groups
+const shareGroups = [];
+for (const ac of ACS) {
+  const byKey = {};
+  for (const v of ac.vills) if (v.mapped) (byKey[v.booths.map(b => b.no).join(',')] ||= []).push(v);
+  for (const [k, vs] of Object.entries(byKey)) if (vs.length > 1) shareGroups.push({ ac, booths: k, vs });
+  const seen = {};
+  for (const v of ac.vills) for (const b of v.booths) (seen[b.no] ||= new Set()).add(v);
+  for (const v of ac.vills) v.sharedWith = [...new Set(v.booths.flatMap(b => [...seen[b.no]]))].filter(o => o !== v);
+}
+
+/* ---------- filters ---------- */
+const F = { ac: '', cat: '', prio: '', field: '', q: '' };
+$('#fAc').innerHTML = '<option value="">All constituencies</option>' + ACS.slice().sort((a, b) => a.name.localeCompare(b.name))
+  .map(a => `<option value="${a.no}">${esc(a.name)} (AC-${a.no}) · ${a.vills.length}</option>`).join('');
+$('#fField').innerHTML = '<option value="">All field statuses</option>' + FIELD.map(s => `<option>${s}</option>`).join('');
+function filtered() {
+  const q = F.q.trim().toLowerCase();
+  return V.filter(v => (!F.ac || v.ac.no == F.ac) && (!F.cat || v.cat === F.cat) && (!F.prio || v.assess.prio === F.prio)
+    && (!F.field || fieldOf(v) === F.field) && (!q || v.search.includes(q)));
+}
+function bindFilter(id, key) {
+  const el = $(id);
+  el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', () => { F[key] = el.value; render(); });
+}
+bindFilter('#fAc', 'ac'); bindFilter('#fCat', 'cat'); bindFilter('#fPrio', 'prio'); bindFilter('#fField', 'field'); bindFilter('#fQ', 'q');
+$('#fReset').onclick = () => { Object.keys(F).forEach(k => F[k] = ''); ['#fAc', '#fCat', '#fPrio', '#fField', '#fQ'].forEach(s => $(s).value = ''); render(); };
+function setFilter(key, val) { F[key] = val; $({ ac: '#fAc', cat: '#fCat', prio: '#fPrio', field: '#fField' }[key]).value = val; }
+
+/* ---------- tabs ---------- */
+let tab = 'overview';
+function showTab(t) {
+  tab = t;
+  $$('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === t));
+  $$('section.view').forEach(s => s.classList.toggle('active', s.id === 'v-' + t));
+  $('#filters').style.display = (t === 'method') ? 'none' : '';
+  setHash();
+  render();
+}
+$$('nav.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+/* ---------- tooltip ---------- */
+const tip = $('#tip');
+function showTip(html, e) {
+  tip.innerHTML = html; tip.style.display = 'block';
+  const r = tip.getBoundingClientRect();
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - 14;
+  if (y + r.height > innerHeight - 8) y = e.clientY - r.height - 14;
+  tip.style.left = Math.max(8, x) + 'px'; tip.style.top = Math.max(8, y) + 'px';
+}
+const hideTip = () => tip.style.display = 'none';
+const tipRow = (k, v) => `<div class="r"><span>${k}</span><span>${v}</span></div>`;
+function villageTip(v) {
+  const s = v.stats;
+  return `<b>${esc(v.name)}</b>${v.nameEn ? ' · ' + esc(v.nameEn) : ''}<div class="muted small">${esc(v.ac.name)} · ${v.booths.length} booth${v.booths.length === 1 ? '' : 's'}</div>`
+    + tipRow('BJP', pct(s.share)) + tipRow(esc(s.rival || 'Rival'), pct(s.rivalShare)) + tipRow('Margin', `${sgn(s.margin)} (${pts(s.marginPts)} pts)`)
+    + tipRow('Turnout', pct(s.turnoutPct)) + tipRow('Electors', fmt(s.electors)) + tipRow('Priority', v.assess.prio);
+}
+
+/* ---------- pieces ---------- */
+const catChip = c => `<span class="cat c-${c}">${CAT[c]}</span>`;
+const prioChip = p => `<span class="prio p-${p}"><i></i>${p}</span>`;
+const bandChip = b => b ? `<span class="band b-${b}">${b}</span>` : '—';
+function mbar(m) {
+  if (m == null) return '<span class="muted">—</span>';
+  const w = Math.min(Math.abs(m) / .5, 1) * 50; // full half-width at ±50 pts
+  const c = m >= 0 ? 'var(--bjp)' : 'var(--rival)';
+  const st = m >= 0 ? `left:50%;width:${w}%;border-radius:0 3px 3px 0` : `left:${50 - w}%;width:${w}%;border-radius:3px 0 0 3px`;
+  return `<span class="mbar" aria-hidden="true"><span style="${st};background:${c}"></span></span>`;
+}
+function sbar(s) {
+  if (!s.turnout) return '';
+  const p = x => (x / s.turnout * 100).toFixed(2) + '%';
+  return `<div class="sbar" title="BJP ${pct(s.share)} · ${esc(s.rival)} ${pct(s.rivalShare)} · others ${pct(s.others / s.turnout)}">`
+    + `<span style="width:${p(s.bjp)};background:var(--bjp)"></span><span style="width:${p(s.rivalVotes)};background:var(--rival)"></span><span style="width:${p(s.others)};background:var(--other)"></span></div>`;
+}
+function hbars(rows, max) {
+  max = max || Math.max(1, ...rows.map(r => r.n));
+  return `<div class="hbars">` + rows.map(r => `<div>${r.label}</div><div class="track"${r.click ? ` data-click="${esc(r.click)}" style="cursor:pointer"` : ''}><div class="fill ${r.cls || ''}" style="width:${(r.n / max * 100).toFixed(1)}%;${r.color ? '--c:' + r.color : ''}"></div></div><div class="n">${r.n}</div>`).join('') + `</div>`;
+}
+
+/* ---------- sortable table ---------- */
+function table(el, cols, rows, state, onRow) {
+  const sorted = rows.slice();
+  const col = cols.find(c => c.key === state.key);
+  if (col && col.sort) sorted.sort((a, b) => {
+    const x = col.sort(a), y = col.sort(b);
+    if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1;
+    return (typeof x === 'string' ? x.localeCompare(y, 'hi') : x - y) * state.dir;
+  });
+  el.innerHTML = `<thead><tr>${cols.map(c => `<th class="${c.num ? 'num ' : ''}${c.sort ? 'sortable' : ''}" data-k="${c.key}">${c.label}${state.key === c.key ? `<span class="arr">${state.dir > 0 ? '▲' : '▼'}</span>` : ''}</th>`).join('')}</tr></thead>`
+    + `<tbody>${sorted.length ? sorted.map((r, i) => `<tr class="click" data-i="${rows.indexOf(r)}">${cols.map(c => `<td class="${c.num ? 'num' : ''}${c.nw ? ' nw' : ''}">${c.cell(r, i)}</td>`).join('')}</tr>`).join('') : `<tr><td colspan="${cols.length}" class="empty">No villages match these filters.</td></tr>`}</tbody>`;
+  $$('th.sortable', el).forEach(th => th.onclick = () => {
+    const k = th.dataset.k; state.dir = state.key === k ? -state.dir : (cols.find(c => c.key === k).desc ? -1 : 1); state.key = k; table(el, cols, rows, state, onRow);
+  });
+  $$('tbody tr.click', el).forEach(tr => tr.onclick = e => { if (!e.target.closest('select,input,a,button')) onRow(rows[+tr.dataset.i]); });
+}
+const vCols = [
+  { key: 'name', label: 'Village', sort: v => v.name, cell: v => `<div class="vname">${esc(v.name)}</div><div class="vsub">${esc(v.nameEn || '')}${v.annotation ? ` · <b>${esc(v.annotation)}</b>` : ''}</div>` },
+  { key: 'ac', label: 'Constituency', sort: v => v.ac.name, cell: v => `${esc(v.ac.name)}<div class="vsub">${esc(v.ac.district)}</div>` },
+  { key: 'booths', label: 'Booths', num: 1, desc: 1, sort: v => v.booths.length, cell: v => v.mapped ? v.booths.length : '<span class="muted">0</span>' },
+  { key: 'el', label: 'Electors', num: 1, desc: 1, sort: v => v.mapped ? v.stats.electors : null, cell: v => v.mapped ? fmt(v.stats.electors) : '—' },
+  { key: 'to', label: 'Turnout', num: 1, sort: v => v.stats.turnoutPct, cell: v => pct(v.stats.turnoutPct) },
+  { key: 'bjp', label: 'BJP share', num: 1, desc: 1, sort: v => v.stats.share, cell: v => v.mapped ? `<b>${pct(v.stats.share)}</b>` : '—' },
+  { key: 'riv', label: 'Strongest rival', sort: v => v.stats.rivalShare, desc: 1, cell: v => v.mapped ? `${esc(v.stats.rival)} <span class="muted">${pct(v.stats.rivalShare)}</span>` : '—' },
+  { key: 'mix', label: 'Vote split', cell: v => v.mapped ? sbar(v.stats) : '' },
+  { key: 'm', label: 'Margin (votes)', num: 1, nw: 1, desc: 1, sort: v => v.mapped ? v.stats.marginPts : null, cell: v => v.mapped ? `${mbar(v.stats.marginPts)}<span class="mval">${sgn(v.stats.margin)}</span>` : '—' },
+  { key: 'cat', label: 'Category', sort: v => CAT_ORDER.indexOf(v.cat), cell: v => catChip(v.cat) },
+  { key: 'prio', label: 'Priority', sort: v => PRIO_ORDER[v.assess.prio] * 10 + Math.abs(v.stats.marginPts ?? 9), cell: v => prioChip(v.assess.prio) },
+  { key: 'fs', label: 'Field', sort: v => FIELD.indexOf(fieldOf(v)), cell: v => `<span class="fs fs-${fieldOf(v).split(' ')[0]}">${fieldOf(v)}</span>` },
+];
+const vState = { key: 'prio', dir: 1 };
+
+/* ---------- renders ---------- */
+function render() {
+  const vs = filtered();
+  $('#fResult').textContent = `${vs.length} of ${V.length} villages`;
+  $('#cnt-v').textContent = vs.length;
+  $('#cnt-g').textContent = V.filter(v => !v.mapped).length;
+  if (tab === 'overview') renderOverview(vs);
+  if (tab === 'villages') table($('#vTable'), vCols, vs, vState, openVillage);
+  if (tab === 'acs') renderACs(vs);
+  if (tab === 'field') renderField(vs);
+  if (tab === 'gaps') renderGaps(vs);
+}
+
+function renderOverview(vs) {
+  const mapped = vs.filter(v => v.mapped);
+  const boothSet = new Map();
+  mapped.forEach(v => v.booths.forEach(b => boothSet.set(v.ac.no + ':' + b.no, b)));
+  const s = agg([...boothSet.values()]);
+  const acsIn = [...new Set(vs.map(v => v.ac))];
+  const acAll = derive({ electors: 0, turnout: 0, votes: {}, hasElectors: true });
+  acsIn.forEach(a => { acAll.electors += a.totals.electors; acAll.turnout += a.totals.turnout; for (const [p, n] of Object.entries(a.totals.votes)) acAll.votes[p] = (acAll.votes[p] || 0) + n; });
+  derive(acAll);
+  const led = mapped.filter(v => v.stats.margin > 0).length;
+  const hi = vs.filter(v => v.assess.prio === 'High').length;
+  const k = (key, val, sub) => `<div class="kpi"><div class="k">${key}</div><div class="v">${val}</div><div class="s">${sub}</div></div>`;
+  $('#kpis').innerHTML =
+    k('Target villages', vs.length, `${mapped.length} mapped to booths · ${vs.length - mapped.length} unmapped`) +
+    k('Polling booths', fmt(boothSet.size), `across ${acsIn.length} constituenc${acsIn.length === 1 ? 'y' : 'ies'}`) +
+    k('Registered electors', fmt(s.electors), `${fmt(s.nonVoters)} did not vote in 2022`) +
+    k('BJP share (2022)', pct(s.share), `vs ${pct(acAll.share)} across ${acsIn.length === 1 ? 'the' : 'these'} constituenc${acsIn.length === 1 ? 'y' : 'ies'}`) +
+    k('BJP led / trailed', `${led} / ${mapped.length - led}`, `net margin ${sgn(s.margin)} votes`) +
+    k('High-priority villages', hi, `${vs.filter(v => v.assess.prio === 'Verify').length} need booth verification`);
+
+  renderScatter(mapped, acsIn);
+  $('#catBars').innerHTML = hbars(CAT_ORDER.map(c => ({ label: catChip(c), n: vs.filter(v => v.cat === c).length, color: c === 'NA' ? 'var(--border-strong)' : null, cls: 'c-' + c, click: 'cat:' + c })));
+  $('#prioBars').innerHTML = hbars(['High', 'Medium', 'Low', 'Verify'].map(p => ({ label: prioChip(p), n: vs.filter(v => v.assess.prio === p).length, color: p === 'Verify' ? 'var(--border-strong)' : `var(--${p === 'High' ? 'hi' : p === 'Medium' ? 'med' : 'low'})`, click: 'prio:' + p })));
+  $$('#catBars [data-click], #prioBars [data-click]').forEach(el => el.onclick = () => { const [k2, v2] = el.dataset.click.split(':'); setFilter(k2, v2); showTab('villages'); });
+
+  const top = vs.filter(v => v.assess.prio === 'High').sort((a, b) => Math.abs(a.stats.marginPts) - Math.abs(b.stats.marginPts)).slice(0, 12);
+  const wrap = document.createElement('table');
+  const cols = [vCols[0], vCols[1], vCols[2], vCols[4], vCols[5], vCols[6], vCols[8],
+    { key: 'act', label: 'Suggested focus', cell: v => esc(v.assess.title) }];
+  if (top.length) { $('#topList').innerHTML = '<div class="table-wrap"></div>'; $('#topList .table-wrap').appendChild(wrap); table(wrap, cols, top, { key: '', dir: 1 }, openVillage); }
+  else $('#topList').innerHTML = '<div class="empty">No high-priority villages under the current filters.</div>';
+}
+
+function renderScatter(vs, acsIn) {
+  const el = $('#scatter');
+  $('#scLegend').innerHTML = ['SB', 'LB', 'BG', 'LR', 'SR'].map(c => catChip(c)).join('') +
+    `<span class="muted">· dashed line = average turnout</span>`;
+  if (!vs.length) { el.innerHTML = '<div class="empty">No mapped villages under the current filters.</div>'; return; }
+  const W = 640, H = 380, m = { l: 44, r: 16, t: 12, b: 40 };
+  const xs = vs.map(v => v.stats.marginPts), ys = vs.map(v => v.stats.turnoutPct).filter(y => y != null);
+  const xMax = Math.min(1, Math.max(.3, ...xs.map(Math.abs)) + .05);
+  const yMin = Math.max(0, Math.floor((Math.min(...ys) - .03) * 20) / 20), yMax = Math.min(1, Math.ceil((Math.max(...ys) + .03) * 20) / 20);
+  const X = x => m.l + (x + xMax) / (2 * xMax) * (W - m.l - m.r);
+  const Y = y => H - m.b - (y - yMin) / (yMax - yMin) * (H - m.t - m.b);
+  const maxE = Math.max(...vs.map(v => v.stats.electors));
+  const R = e => 4 + Math.sqrt(e / maxE) * 16;
+  const tot = vs.reduce((a, v) => (a.e += v.stats.electors, a.t += v.stats.turnout, a), { e: 0, t: 0 });
+  const avgT = tot.e ? tot.t / tot.e : null;
+  let g = '';
+  const xt = []; for (let x = -Math.floor(xMax * 10) / 10; x <= xMax + 1e-9; x += xMax > .6 ? .2 : .1) xt.push(+x.toFixed(2));
+  const yt = []; for (let y = yMin; y <= yMax + 1e-9; y += .05) yt.push(+y.toFixed(2));
+  g += `<g class="grid">${yt.map(y => `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(y)}" y2="${Y(y)}"/>`).join('')}</g>`;
+  g += yt.map(y => `<text x="${m.l - 6}" y="${Y(y) + 4}" text-anchor="end">${Math.round(y * 100)}%</text>`).join('');
+  g += xt.map(x => `<text x="${X(x)}" y="${H - m.b + 16}" text-anchor="middle">${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(Math.round(x * 100))}</text>`).join('');
+  g += `<g class="axis"><line x1="${X(0)}" x2="${X(0)}" y1="${m.t}" y2="${H - m.b}"/></g>`;
+  if (avgT) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(avgT)}" y2="${Y(avgT)}" stroke="var(--text-3)" stroke-dasharray="4 4"/>`;
+  g += `<text class="lab" x="${X(0) - 8}" y="${m.t + 12}" text-anchor="end">← Rival led</text><text class="lab" x="${X(0) + 8}" y="${m.t + 12}">BJP led →</text>`;
+  g += `<text x="${(m.l + W - m.r) / 2}" y="${H - 6}" text-anchor="middle">BJP margin over strongest rival (pts of votes polled)</text>`;
+  g += `<text x="12" y="${(m.t + H - m.b) / 2}" text-anchor="middle" transform="rotate(-90 12 ${(m.t + H - m.b) / 2})">Turnout</text>`;
+  const order = vs.map((v, i) => i).sort((a, b) => vs[b].stats.electors - vs[a].stats.electors);
+  g += order.map(i => { const v = vs[i]; const y = v.stats.turnoutPct ?? avgT; return `<circle class="dot c-${v.cat}" data-i="${i}" cx="${X(v.stats.marginPts).toFixed(1)}" cy="${Y(y).toFixed(1)}" r="${R(v.stats.electors).toFixed(1)}" fill="var(--c)" fill-opacity=".85"/>`; }).join('');
+  el.innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Scatter of target villages by BJP margin and turnout">${g}</svg>`;
+  $$('circle.dot', el).forEach(c => {
+    const v = vs[+c.dataset.i];
+    c.addEventListener('mousemove', e => showTip(villageTip(v), e));
+    c.addEventListener('mouseleave', hideTip);
+    c.addEventListener('click', () => { hideTip(); openVillage(v); });
+  });
+}
+
+function renderACs(vs) {
+  const acs = ACS.filter(a => vs.some(v => v.ac === a)).sort((a, b) => a.no - b.no);
+  const line = (label, val, max, color) => `<div class="ln"><span>${label}</span><div class="tr"><span style="width:${(Math.min(val ?? 0, max) / max * 100).toFixed(1)}%;background:${color}"></span></div><b>${pct(val, 0)}</b></div>`;
+  $('#acCards').innerHTML = acs.map(a => {
+    const tv = a.vills, mp = tv.filter(v => v.mapped), ts = a.targetStats, s = a.stats;
+    const led = mp.filter(v => v.stats.margin > 0).length;
+    return `<div class="card ac-card" data-ac="${a.no}" style="cursor:pointer">
+      <h3>${esc(a.name)} <span class="muted" style="font-weight:400">AC-${a.no}</span></h3>
+      <div class="meta">${esc(a.district)} district · workbook view: ${esc(a.perspective)} · main rival overall: ${esc(s.rival)}</div>
+      <div class="row"><span>Target villages (mapped / listed)</span><span>${mp.length} / ${tv.length}</span></div>
+      <div class="row"><span>Target booths / all booths</span><span>${Object.keys(a.booths).length} / ${a.boothCount}</span></div>
+      <div class="row"><span>BJP led / trailed in targets</span><span>${led} / ${mp.length - led}</span></div>
+      <div class="row"><span>High priority</span><span>${tv.filter(v => v.assess.prio === 'High').length}</span></div>
+      <div class="cmp">
+        ${line('BJP · targets', ts.share, 1, 'var(--bjp)')}
+        ${line('BJP · whole AC', s.share, 1, 'var(--bjp)')}
+        ${line('Turnout · targets', ts.turnoutPct, 1, 'var(--text-3)')}
+        ${line('Turnout · AC', s.turnoutPct, 1, 'var(--text-3)')}
+      </div>
+      <div class="row"><span>Net BJP margin in targets</span><span>${sgn(ts.margin)}</span></div>
+    </div>`;
+  }).join('') || '<div class="empty">No constituencies match.</div>';
+  $$('#acCards .ac-card').forEach(c => c.onclick = () => { setFilter('ac', c.dataset.ac); showTab('villages'); });
+}
+
+function renderField(vs) {
+  const counts = FIELD.map(s => vs.filter(v => fieldOf(v) === s).length);
+  const colors = ['var(--border-strong)', 'var(--st-amber)', 'var(--st-yellow)', 'var(--accent)', 'var(--st-green)'];
+  $('#fieldSummary').innerHTML = `<div class="progress">${counts.map((n, i) => n ? `<span style="width:${n / vs.length * 100}%;background:${colors[i]}" title="${FIELD[i]}: ${n}"></span>` : '').join('')}</div>
+    <div class="legend" style="margin-top:8px">${FIELD.map((s, i) => `<span><span class="sw" style="background:${colors[i]}"></span>${s}: <b>${counts[i]}</b></span>`).join('')}</div>`;
+  const cols = [vCols[0], vCols[1], vCols[10], vCols[9],
+    { key: 'st', label: 'Status', sort: v => FIELD.indexOf(fieldOf(v)), cell: v => `<select data-id="${v.id}" class="fsSel">${FIELD.map(s => `<option${s === fieldOf(v) ? ' selected' : ''}>${s}</option>`).join('')}</select>` },
+    { key: 'own', label: 'Owner', sort: v => (tracker[v.id] || {}).owner || '', cell: v => `<input data-id="${v.id}" class="fsOwn" value="${esc((tracker[v.id] || {}).owner || '')}" placeholder="—" style="width:120px;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:4px 6px">` },
+    { key: 'nt', label: 'Notes', cell: v => `<span class="small">${esc(((tracker[v.id] || {}).notes || '').slice(0, 80))}</span>` },
+    { key: 'up', label: 'Updated', sort: v => (tracker[v.id] || {}).updated || '', cell: v => `<span class="small muted">${esc(((tracker[v.id] || {}).updated || '').slice(0, 10))}</span>` },
+  ];
+  table($('#fTable'), cols, vs, fState, openVillage);
+  $$('#fTable .fsSel').forEach(s => s.onchange = () => { setTrack(s.dataset.id, { status: s.value }); renderField(filtered()); });
+  $$('#fTable .fsOwn').forEach(s => s.onchange = () => setTrack(s.dataset.id, { owner: s.value }));
+}
+const fState = { key: 'prio', dir: 1 };
+function setTrack(id, patch) { tracker[id] = { ...(tracker[id] || {}), ...patch, updated: new Date().toISOString(), ...(myId ? { by: myId } : {}) }; persist(id); }
+
+function renderGaps(vs) {
+  const un = vs.filter(v => !v.mapped);
+  $('#gapList').innerHTML = un.length ? `<div class="table-wrap"><table><thead><tr><th>Village</th><th>Constituency</th><th>Workbook note / hint for verification</th></tr></thead><tbody>${un.map(v => `<tr><td class="vname">${esc(v.name)}${v.annotation ? `<div class="vsub"><b>${esc(v.annotation)}</b></div>` : ''}</td><td>${esc(v.ac.name)}</td><td class="small">${esc(v.note)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">None under current filters.</div>';
+  const sg = shareGroups.filter(g => g.vs.some(v => vs.includes(v)));
+  const overl = [];
+  for (const v of vs) for (const o of v.sharedWith) if (v.id < o.id && !sg.some(g => g.vs.includes(v) && g.vs.includes(o))) overl.push([v, o]);
+  $('#shareList').innerHTML = (sg.length || overl.length) ? `<ul style="margin:0;padding-left:18px">${sg.map(g => `<li><b>${g.vs.map(v => esc(v.name)).join(' = ')}</b> <span class="muted">(${esc(g.ac.name)}, booths ${esc(g.booths)})</span></li>`).join('')}${overl.map(([a, b]) => `<li><b>${esc(a.name)}</b> and <b>${esc(b.name)}</b> partly overlap <span class="muted">(${esc(a.ac.name)}, booths ${a.booths.filter(x => b.booths.includes(x)).map(x => x.no).join(', ')})</span></li>`).join('')}</ul>` : '<div class="empty">None.</div>';
+  const acs = ACS.filter(a => vs.some(v => v.ac === a) || !F.ac);
+  $('#acNotes').innerHTML = acs.map(a => `<details class="note"><summary>${esc(a.name)} (AC-${a.no}) <span class="muted" style="font-weight:400">· ${esc(a.workbook)}</span></summary><ul>${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>`).join('');
+}
+
+/* ---------- village drawer ---------- */
+let current = null;
+function setHash() { try { history.replaceState(null, '', '#' + (current ? 'v' + current.id : tab)); } catch (e) {} }
+function openVillage(v) {
+  current = v; setHash();
+  const s = v.stats, ac = v.ac.stats, a = v.assess, tr = tracker[v.id] || {};
+  const mapQ = (() => {
+    const b = v.booths.find(b => b.lat && b.lon);
+    if (b) return `https://www.google.com/maps/search/?api=1&query=${b.lat},${b.lon}`;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((v.nameEn || v.name) + ', ' + v.ac.district + ', Uttar Pradesh')}`;
+  })();
+  const cmp = (val, ref, f) => val == null || ref == null ? '' : `<div class="c">AC: ${f(ref)} (${val - ref >= 0 ? '+' : '−'}${Math.abs((val - ref) * 100).toFixed(1)} pts)</div>`;
+  let html = `<div class="d-head">
+      <div style="flex:1">
+        <div class="muted small">${esc(v.ac.name)} (AC-${v.ac.no}) · ${esc(v.ac.district)} district</div>
+        <h2>${esc(v.name)}${v.nameEn ? ` <span class="muted" style="font-weight:400;font-size:15px">${esc(v.nameEn)}</span>` : ''}</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;align-items:center">${catChip(v.cat)} ${prioChip(a.prio)} <span class="muted small">Match: ${esc(v.status)}</span>${v.annotation ? ` <span class="fs">Target note: ${esc(v.annotation)}</span>` : ''}</div>
+      </div>
+      <div class="no-print" style="display:flex;gap:6px">
+        <a class="btn small" href="${mapQ}" target="_blank" rel="noopener">Map ↗</a>
+        <button class="btn small local-only" id="dPrint">Print</button>
+        <button class="btn small" id="dClose" aria-label="Close">✕</button>
+      </div>
+    </div><div class="d-body">`;
+  html += `<div class="card action" style="--pc:var(--${a.prio === 'High' ? 'hi' : a.prio === 'Medium' ? 'med' : 'low'})"><div class="t">${esc(a.title)}</div><div style="color:var(--text-2);margin-top:4px">${esc(a.why)}</div>`;
+  if (v.mapped) {
+    if (s.margin < 0) {
+      const d = -s.margin;
+      html += `<div style="margin-top:8px"><b>To overtake ${esc(s.rival)}:</b> ${fmt(d + 1)} additional BJP voters, <i>or</i> about ${fmt(Math.ceil((d + 1) / 2))} ${esc(s.rival)} voters switching${s.nonVoters != null ? ` · ${fmt(s.nonVoters)} electors did not vote` : ''}.</div>`;
+    } else {
+      html += `<div style="margin-top:8px"><b>Cushion:</b> BJP would lose the lead if about ${fmt(Math.ceil(s.margin / 2) || 1)} BJP voters switched to ${esc(s.rival)}.</div>`;
+    }
+  }
+  html += `</div>`;
+  if (v.mapped) {
+    html += `<div class="card"><div class="kv">
+      <div><div class="k">Electors</div><div class="v">${fmt(s.electors)}</div><div class="c">${v.booths.length} booth${v.booths.length > 1 ? 's' : ''}</div></div>
+      <div><div class="k">Turnout</div><div class="v">${pct(s.turnoutPct)}</div>${cmp(s.turnoutPct, ac.turnoutPct, pct)}</div>
+      <div><div class="k">Did not vote</div><div class="v">${fmt(s.nonVoters)}</div><div class="c">${fmt(s.turnout)} voted</div></div>
+      <div><div class="k">BJP votes</div><div class="v">${fmt(s.bjp)}</div><div class="c">${pct(s.share)} share</div>${cmp(s.share, ac.share, pct)}</div>
+      <div><div class="k">${esc(s.rival)} votes</div><div class="v">${fmt(s.rivalVotes)}</div><div class="c">${pct(s.rivalShare)} share</div></div>
+      <div><div class="k">Margin</div><div class="v">${sgn(s.margin)}</div><div class="c">${pts(s.marginPts)} pts</div></div>
+    </div></div>`;
+    const parties = Object.entries(s.votes).filter(([p, n]) => n > 0).sort((x, y) => y[1] - x[1]);
+    const maxP = parties[0][1];
+    html += `<div class="card"><h2>All parties in this village</h2><p class="hint">2022 votes across the village’s booths. Orange = BJP, blue = strongest rival.</p>
+      <div class="hbars">${parties.map(([p, n]) => `<div>${esc(p)}</div><div class="track"><div class="fill" style="width:${(n / maxP * 100).toFixed(1)}%;--c:${p === 'BJP' ? 'var(--bjp)' : p === s.rival ? 'var(--rival)' : 'var(--other)'}"></div></div><div class="n">${fmt(n)} · ${pct(n / s.turnout)}</div>`).join('')}</div></div>`;
+    const bs = v.booths.slice().sort((x, y) => (+x.no.match(/\d+/)[0]) - (+y.no.match(/\d+/)[0]));
+    html += `<div class="card"><h2>Booth-level results</h2><p class="hint">Work booth by booth: the closest booths and the ones with the most non-voters give the best return.</p>
+      <div class="table-wrap"><table><thead><tr><th>Booth</th><th>Polling station</th><th class="num">Electors</th><th class="num">Turnout</th><th class="num">BJP</th><th class="num">Rival</th><th>Split</th><th class="num">Margin</th><th>BJP band</th></tr></thead><tbody>
+      ${bs.map(b => { const t = b.stats; return `<tr><td><b>${esc(b.no)}</b></td><td class="small">${esc(b.station)}${b.village_en ? `<div class="vsub">${esc(b.village_en)}</div>` : ''}</td><td class="num">${fmt(t.electors)}</td><td class="num">${pct(t.turnoutPct, 0)}</td><td class="num">${fmt(t.bjp)}<div class="vsub">${pct(t.share, 0)}</div></td><td class="num">${fmt(t.rivalVotes)}<div class="vsub">${esc(t.rival)} ${pct(t.rivalShare, 0)}</div></td><td style="min-width:110px">${sbar(t)}</td><td class="num"><b>${sgn(t.margin)}</b></td><td>${bandChip(b.band)}</td></tr>`; }).join('')}
+      </tbody></table></div></div>`;
+  }
+  if (v.note || v.sharedWith.length) {
+    html += `<div class="card"><h2>Matching notes</h2>${v.note ? `<p style="margin:6px 0;color:var(--text-2)">${esc(v.note)}</p>` : ''}${v.sharedWith.length ? `<p style="margin:6px 0" class="small">Shares booths with: <b>${v.sharedWith.map(o => esc(o.name)).join(', ')}</b></p>` : ''}</div>`;
+  }
+  html += `<div class="card no-print-inputs"><h2>Field tracker</h2><p class="hint">${sharedDb ? 'Shared with everyone who opens this dashboard.' : 'Saved in this browser. Export from the Field tracker tab to share.'}</p>
+    <div class="tracker">
+      <div><label for="trS">Status</label><select id="trS">${FIELD.map(f => `<option${f === fieldOf(v) ? ' selected' : ''}>${f}</option>`).join('')}</select></div>
+      <div><label for="trO">Owner / karyakarta</label><input id="trO" value="${esc(tr.owner || '')}" placeholder="Name, phone"></div>
+      <div class="full"><label for="trN">Notes (local contacts, issues, community, follow-ups)</label><textarea id="trN">${esc(tr.notes || '')}</textarea></div>
+    </div>${tr.updated ? `<div class="muted small" style="margin-top:6px" id="trWho">Last updated ${esc(new Date(tr.updated).toLocaleString())}</div>` : ''}</div>`;
+  html += `</div>`;
+  const d = $('#drawer');
+  d.innerHTML = html; d.classList.add('open'); d.setAttribute('aria-hidden', 'false'); $('#scrim').classList.add('open'); d.scrollTop = 0;
+  $('#dClose').onclick = closeVillage;
+  $('#dPrint').onclick = () => window.print();
+  $('#trS').onchange = e => { setTrack(v.id, { status: e.target.value }); render(); };
+  $('#trO').onchange = e => { setTrack(v.id, { owner: e.target.value }); render(); };
+  $('#trN').onchange = e => { setTrack(v.id, { notes: e.target.value }); render(); };
+  $('#dClose').focus();
+  if (tr.by && userCap) userCap.profiles([tr.by]).then(ps => { const w = $('#trWho'); if (w && current === v) w.textContent += ' by ' + ((ps[tr.by] && ps[tr.by].name) || 'a teammate'); }).catch(() => {});
+}
+function closeVillage() { $('#drawer').classList.remove('open'); $('#drawer').setAttribute('aria-hidden', 'true'); $('#scrim').classList.remove('open'); current = null; setHash(); }
+$('#scrim').onclick = closeVillage;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && current) closeVillage(); });
+
+/* ---------- export / import ---------- */
+let dlCap = null;
+function download(name, text, type) {
+  const msg = $('#trMsg');
+  if (LOCAL) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return;
+  }
+  if (!dlCap) return;
+  dlCap.save({ filename: name, data: text }).then(() => { if (msg) msg.textContent = 'Saved ' + name; })
+    .catch(e => { if (msg && e && e.code !== 'declined') msg.textContent = 'Could not save the file (' + (e.code || 'error') + ').'; });
+}
+const csvCell = x => { const s = String(x ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+function villageRows(vs) {
+  const head = ['AC No', 'Constituency', 'District', 'Village', 'Village (English)', 'Match status', 'Booths', 'Electors', 'Votes polled', 'Turnout %', 'BJP votes', 'BJP %', 'Strongest rival', 'Rival votes', 'Rival %', 'Margin (votes)', 'Margin (pts)', 'Did not vote', 'Category', 'Priority', 'Suggested focus', 'Field status', 'Owner', 'Field notes', 'Workbook note'];
+  const rows = vs.map(v => { const s = v.stats, t = tracker[v.id] || {}; const r = n => n == null ? '' : (n * 100).toFixed(1);
+    return [v.ac.no, v.ac.name, v.ac.district, v.name, v.nameEn, v.status, v.booths.map(b => b.no).join(' '), v.mapped ? s.electors : '', v.mapped ? s.turnout : '', r(s.turnoutPct), v.mapped ? s.bjp : '', r(s.share), s.rival || '', v.mapped ? s.rivalVotes : '', r(s.rivalShare), v.mapped ? s.margin : '', r(s.marginPts), s.nonVoters ?? '', CAT[v.cat], v.assess.prio, v.assess.title, fieldOf(v), t.owner || '', t.notes || '', v.note]; });
+  return '﻿' + [head, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
+}
+$('#exportV').onclick = () => download('target_villages.csv', villageRows(filtered()), 'text/csv');
+$('#trCsv').onclick = () => download('field_plan.csv', villageRows(filtered()), 'text/csv');
+$('#trExport').onclick = () => download('field_tracker.json', JSON.stringify(tracker, null, 1), 'application/json');
+$('#trImport').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(t => {
+    try {
+      const inc = JSON.parse(t); let n = 0;
+      for (const [id, rec] of Object.entries(inc)) {
+        if (!V.some(v => v.id === id) || typeof rec !== 'object') continue;
+        if (!tracker[id] || (rec.updated || '') > (tracker[id].updated || '')) { tracker[id] = rec; n++; }
+      }
+      Object.keys(inc).forEach(id => { if (tracker[id] === inc[id]) persist(id); }); render(); $('#trMsg').textContent = `Imported ${n} updated record(s). Newer edits were kept.`;
+    } catch (err) { $('#trMsg').textContent = 'Could not read that file: ' + err.message; }
+  });
+  e.target.value = '';
+};
+
+/* ---------- theme ---------- */
+function applyTheme(t) { if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); }
+let theme = null; try { theme = localStorage.getItem('tvd-theme'); } catch (e) {}
+if (LOCAL) applyTheme(theme);
+$('#themeBtn').onclick = () => {
+  const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  theme = dark ? 'light' : 'dark'; applyTheme(theme); try { localStorage.setItem('tvd-theme', theme); } catch (e) {}
+};
+
+/* ---------- init ---------- */
+const nMapped = V.filter(v => v.mapped).length;
+$('#subtitle').textContent = `${D.election} booth results · ${ACS.length} constituencies · ${V.length} target villages (${nMapped} mapped)`;
+$('#genInfo').textContent = `Data built ${D.generated}.` + (D.buildWarnings.length ? ` Build warnings: ${D.buildWarnings.join('; ')}` : ' No build warnings.');
+const start = (location.hash || '').slice(1);
+const dv = /^v\d+-\d+$/.test(start) && V.find(v => v.id === start.slice(1));
+showTab(dv ? 'villages' : ['overview', 'villages', 'acs', 'field', 'gaps', 'method'].includes(start) ? start : 'overview');
+if (dv) openVillage(dv);
+if (!LOCAL) {
+  cap('downloads').then(d => { dlCap = d; if (d) document.documentElement.classList.add('can-dl'); });
+  cap('user').then(u => { userCap = u; return u ? u.id() : null; }).then(id => { myId = id; }).catch(() => {});
+  cap('db').then(db => {
+    if (!db) return;
+    sharedDb = db;
+    $('#trMode').textContent = 'Status, owner and notes are shared live with everyone who opens this dashboard. People with view-only access can read but not change them.';
+    db.collection('tracker').onSnapshot(snap => {
+      const next = {};
+      snap.docs.forEach(d => { if (d.exists) next[d.id] = d.data(); });
+      tracker = next; render();
+    }, () => { $('#trMsg').textContent = 'Lost connection to the shared tracker. Reload the page.'; });
+  });
+}
+})();
+</script>
+</body>
+</html>
